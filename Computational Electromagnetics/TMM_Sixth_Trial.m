@@ -1,0 +1,322 @@
+% BASED from the University of Texas - El Paso EE 5337 - COMPUTATIONAL ELECTROMAGNETICS
+%
+% This code was written by Francis S. Dela Cruz, and was heavily referenced
+% from the lectures on CEM (Computational Electromagnetics). The code was
+% built from scratch without any reference to prewritten codes available.
+% The basis of this code is from the Maxwell's Equation that was translated
+% into matrices to be solved in MATLAB. This is a benchmarking code for
+% future TMM Calculations. Note that this was written with just a basic
+% knowledge in MATLAB. Optimization and refactoring of codes are necessary
+% to keep the runtime lower and simulation speed faster, as the coder
+% implements better code syntax and alogrithms. 
+
+% Benchmarked as of May 5, 2020
+
+% This MATLAB Program implements the Transfer Matrix Method (TMM).
+
+% INITIALIZE MATLAB
+close all;
+clc;
+clear all;
+
+% START TIMER
+t1 = clock;
+
+% UNITS
+degrees = pi/180;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% DEFINE SIMULATION PARAMETERS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% SOURCE PARAMETERS
+lam0 = 1;                     %free space wavelength
+theta = 65* degrees;           %elevation angle
+phi = 35* degrees;             %azimuthal angle
+pte = 0;                        %amplitude of TE polarization
+ptm = 1;                        %amplitude of TM polarization
+
+% EXTERNAL MATERIALS
+ur1 = 2.0;                        %permeability in the reflection region
+er1 = 3.0;                        %permittivity in the reflection region
+ur2 = 4.0;                        %permeability in the transmission region
+er2 = 5.0;                        %permittivity in the transmission region
+
+% DEFINE LAYERS
+UR = [1];                   %array of permeabilities in each layer
+ER = [1];                   %array of permittivities in each layer
+L = [0];                    %array of thickness of each layer
+
+% DEFINE Identity Matrix and Zero Matrix
+
+I = eye(2);
+ZeroMat = zeros(2);
+
+% DEFINE Normal Vector
+n_hat = [0 0 -1];
+
+% DEFINE Number of time to repeat unit cell
+
+N = 1;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% IMPLEMENT TRANSFER MATRIX METHOD
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Calculation of the k0
+
+k0 = 2*pi/lam0;
+
+% Refractive Index in the reflection region and transmission region
+n_inc = sqrt(ur1*er1);
+n_trn = sqrt(ur2*er2);
+
+% Calculate Transverse Normalized Incident Wave Vectors
+kx_n = n_inc*sin(theta)*cos(phi);
+ky_n = n_inc*sin(theta)*sin(phi);
+
+% Calculate Longitudinal Component of the Incident and Transmitted Wave Vector 
+kz_n = sqrt(ur1*er1 - kx_n^2 - ky_n^2);
+kz_nt = sqrt(ur2*er2 - kx_n^2 - ky_n^2);
+
+% Calculate Longitudinal Component of the Wave Vector in the Gap Medium
+urg = 1.0;                              %permeability in the gap medium
+erg = 1.0 + kx_n^2 + ky_n^2;            %permittivity in the gap medium
+kz_n_gap = sqrt(urg*erg - kx_n^2 - ky_n^2);
+
+% Calculate the Gap Medium Parameters                        
+
+Qg = [kx_n*ky_n 1+ky_n^2; -(1+kx_n^2) -kx_n*ky_n];
+Vg = -1i*Qg;
+
+% Initialize Global S-Matrix 
+
+SG.S11 = ZeroMat;
+SG.S12 = I;
+SG.S21 = I;
+SG.S22 = ZeroMat;
+
+% Calculate Parameter for ith Layer (revised this)
+kz_i = zeros(1, length(L));
+Qi = cell(1, length(L));               %preallocation - reducing the memory intake
+OMEGA_i = cell(1, length(L));
+Vi = cell(1, length(L));
+for i = 1:length(L)
+    Qi{i} = zeros(2);
+    OMEGA_i{i} = zeros(2);
+    Vi{i} = zeros(2);
+end
+
+for i = 1:length(L)
+    kz_i(i) = sqrt(UR(i)*ER(i) - kx_n^2 - ky_n^2);
+    Qi{i} = (1/UR(i))*[kx_n*ky_n, UR(i)*ER(i)-kx_n^2; ky_n^2-UR(i)*ER(i), -kx_n*ky_n];        
+    OMEGA_i{i} = 1i*kz_i(i)*I;
+    Vi{i} = Qi{i}/(OMEGA_i{i});
+end
+
+% Calculate S-Matrix for the ith Layer
+Ai = cell(1, length(L));                  %preallocation
+Bi = cell(1, length(L));
+Xi = cell(1, length(L));
+Di = cell(1, length(L));
+S11_i = cell(1, length(L));
+S12_i = cell(1, length(L));
+
+for i = 1:length(L)
+    Ai{i} = zeros(2);                     %Filling up the cells with 2x2 zero matrices
+    Bi{i} = zeros(2);
+    Xi{i} = zeros(2);
+    Di{i} = zeros(2);
+    S11_i{i} = zeros(2);
+    S12_i{i} = zeros(2);
+end
+% Algorithm for getting the S-matrix components
+for i = 1:length(L)
+    Ai{i} = I + Vi{i}\Vg;
+    Bi{i} = I - Vi{i}\Vg;
+    Xi{i} = expm(OMEGA_i{i}*k0*L(i)*lam0);
+    Di{i} = Ai{i} - Xi{i}*Bi{i}/Ai{i}*Xi{i}*Bi{i};
+    S11_i{i} = Di{i}\(Xi{i}*Bi{i}/Ai{i}*Xi{i}*Ai{i} - Bi{i});
+    S12_i{i} = Di{i}\Xi{i}*(Ai{i}-Bi{i}/Ai{i}*Bi{i});
+end
+
+S21_i = S12_i;
+S22_i = S11_i;
+
+% One Unit Cell S-Matrix
+
+SD.S11 = S11_i{1};
+SD.S12 = S12_i{1};
+SD.S21 = S21_i{1};
+SD.S22 = S22_i{1};
+
+for i = 2:length(L)
+    SDn.S11 = S11_i{i};
+    SDn.S12 = S12_i{i};
+    SDn.S21 = S21_i{i};
+    SDn.S22 = S22_i{i};
+    SD = star(SD, SDn);
+end
+
+% Cascading and Doubling Algorithm
+N_bin = de2bi(N);
+N_elm = length(N_bin);
+
+Sbin = SD;
+
+for i = 1:length(N_bin)
+    if N_bin(i)== 1
+        SG = star(SG, Sbin);
+        if i <= length(N_bin) - 1
+            disp(num2str(i));
+            Sbin = star(Sbin,Sbin);
+        else
+            break
+        end
+    elseif N_bin(i)== 0
+        Sbin = star(Sbin,Sbin);
+    end
+end
+
+% Connect to External Regions - REF and TRN Regions
+
+% REF Region
+kz_n_ref = sqrt(ur1*er1 - kx_n^2 - ky_n^2);
+Qref = (1/ur1)*[kx_n*ky_n, ur1*er1-kx_n^2; ky_n^2-ur1*er1, -kx_n*ky_n];
+OMEGAref = 1i*kz_n_ref*I;
+Vref = Qref/OMEGAref;
+
+Aref = I + Vg\Vref;
+Bref = I - Vg\Vref;
+
+SR11 = -Aref\Bref;
+SR12 = 2*I/Aref;
+SR21 = 0.5*I*(Aref - Bref/Aref*Bref);
+SR22 = Bref/Aref;
+
+% TRN Region
+
+kz_n_trn = sqrt(ur2*er2 - kx_n^2 - ky_n^2);
+Qtrn = (1/ur2)*[kx_n*ky_n, ur2*er2-kx_n^2; ky_n^2-ur2*er2, -kx_n*ky_n];
+OMEGAtrn = 1i*kz_n_trn*I;
+Vtrn = Qtrn/OMEGAtrn;
+
+Atrn = I + Vg\Vtrn;
+Btrn = I - Vg\Vtrn;
+
+ST11 = Btrn/Atrn;
+ST12 = 0.5*I*(Atrn - Btrn/Atrn*Btrn);
+ST21 = 2*I/Atrn;
+ST22 = -Atrn\Btrn;
+
+% Finalizing the Global S-matrix by connecting the reflection and the
+% transmission region to the S-Matrix of the device.
+
+% Sglobal = Sglobal RSP S-trn
+
+Dt = SG.S12/(I - ST11*SG.S22);
+Ft = ST21/(I - SG.S22*ST11);
+
+SG.S11 = SG.S11 + Dt*ST11*SG.S21;
+SG.S12 = Dt*ST12;
+SG.S21 = Ft*SG.S21;
+SG.S22 = ST22 + Ft*SG.S22*ST12;
+
+% Sglobal = S-ref RSP S-global
+
+Dr = SR12/(I - SG.S11*SR22);
+Fr = SG.S21/(I - SR22*SG.S11);
+
+SG.S22 = SG.S22 + Fr*SR22*SG.S12;
+SG.S21 = Fr*SR21;
+SG.S12 = Dr*SG.S12;
+SG.S11 = SR11 + Dr*SG.S11*SR21;
+
+% Solving the Scatterring Problem
+
+% Calculate the Source (Polarization components), then check for the |P| = 1
+
+k_n_incident = [kx_n; ky_n; kz_n];
+n_hat = [0 0 -1];
+
+if theta == 0
+    ate_hat = [0 1 0];
+else
+    ate_hat = cross(k_n_incident, n_hat)/norm(cross(k_n_incident, n_hat));
+end
+
+atm_hat = cross(ate_hat, k_n_incident)/norm(cross(ate_hat, k_n_incident));
+
+P = pte*ate_hat + ptm*atm_hat;
+
+normalized_P = norm(P); 
+
+Esrcxy = [P(1);P(2)];
+
+% Calculate for Transmitted and Reflected Fields
+
+Erefxy = SG.S11*Esrcxy;
+
+Etrnxy = SG.S21*Esrcxy;
+
+% Calculate for the Longitudinal Field Components
+
+Ezref = -(kx_n*Erefxy(1) + ky_n*Erefxy(2))/kz_n;
+Eztrn = -(kx_n*Etrnxy(1) + ky_n*Etrnxy(2))/kz_nt;
+
+% Calculate Transmittance and Reflectance
+
+EREF = [Erefxy(1); Erefxy(2); Ezref];
+ETRN = [Etrnxy(1); Etrnxy(2); Eztrn];
+
+R = transpose(EREF)*conj(EREF);
+T = (transpose(ETRN)*conj(ETRN))*(real(kz_nt/ur2)/real(kz_n/ur1));
+
+% Check the conservation R+T = 1
+
+CON = R + T;
+
+% Displaying Texts and Values
+disp(['R = ' num2str(R)]);
+disp(['T = ' num2str(T)]);
+disp(['CON = ' num2str(CON)]);
+
+% STOP TIMER
+t2 = clock;
+t = etime(t2,t1);
+disp(['Elapsed time is ' num2str(t) ...
+    ' seconds.']);
+
+function S = star(SA,SB)
+    % STAR Redheffer Star Product
+    %
+    % S = star(SA,SB)
+    %
+    % INPUT ARGUMENTS
+    % ================
+    % SA First Scattering Matrix
+    % .S11 S11 scattering parameter
+    % .S12 S12 scattering parameter
+    % .S21 S21 scattering parameter
+    % .S22 S22 scattering parameter
+    %
+    % SB Second Scattering Matrix
+    % .S11 S11 scattering parameter
+    % .S12 S12 scattering parameter
+    % .S21 S21 scattering parameter
+    % .S22 S22 scattering parameter
+    %
+    % OUTPUT ARGUMENTS
+    % ================
+    % S Combined Scattering Matrix
+    % .S11 S11 scattering parameter
+    % .S12 S12 scattering parameter
+    % .S21 S21 scattering parameter
+    % .S22 S22 scattering parameter
+    I = eye(size(SA.S11));
+    D = SA.S12/(I - SB.S11*SA.S22);
+    F = SB.S21/(I - SA.S22*SB.S11);
+    S.S11 = SA.S11 + D*(SB.S11*SA.S21);
+    S.S12 = D*SB.S12;
+    S.S21 = F*SA.S21;
+    S.S22 = SB.S22 + F*(SA.S22*SB.S12);
+end
