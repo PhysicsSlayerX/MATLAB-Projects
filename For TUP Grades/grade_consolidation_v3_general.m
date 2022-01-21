@@ -16,6 +16,8 @@ MainTable = struct(f0,v0);
 
 % Sorting Data According to Section and Names
 
+% Remove the spaces and commas in the names
+
 % Convert Table to Cell to Array
 wd = table2cell(T);
 col2 = convertCharsToStrings(wd(:,2));
