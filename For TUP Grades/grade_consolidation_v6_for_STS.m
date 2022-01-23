@@ -11,15 +11,18 @@ time1 = clock;
 
 % Parameters
 charPos         = 12;
-charAdj         = 2;
+charAdj         = 3;
 
 % Item Details
-numberOfItems   = [7; 3; 1];
-prefix          = ["TQ"; "TPS"; "TE"];
+numberOfItems   = [8; 1];
+prefix          = ["SQ"; "SE"];
 
 % Raw Data Configuration
 ColIndex        = [8 6 11];
-ColIndex_exams  = [9 6 12];
+ColIndex_exams  = [8 6 11];
+
+% List of Alphabetical Names
+alphabeticalNames = 'NamesThermoAlphabeticalSTS.csv';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % IMPORT ALL THE NECESSARY FILES
@@ -44,29 +47,23 @@ for k = 1: size(numberOfItems,1)
     end
 end
  quizzes  = itemName{1,1};
- probSets = itemName{2,1};
- exams    = itemName{3,1};
+ exams    = itemName{2,1};
  
 % Create a Struct File for storing imported table data
-f0 = 'ThermoQuiz';      v0 = zeros(1,size(quizzes,1));
-f1 = 'ThermoProbSets';  v1 = zeros(1,size(probSets,1));
-f2 = 'ThermoExams';     v2 = zeros(1,size(exams,1));
-MainTable = struct(f0,v0,f1,v1,f2,v2);
+f0 = 'STSQuiz';      v0 = zeros(1,size(quizzes,1));
+f1 = 'STSProbSets';  v1 = zeros(1,size(exams,1));
+MainTable = struct(f0,v0,f1,v1);
 
 for m = 1:size(quizzes,1)
-    MainTable(m).ThermoQuiz         = readtable(quizzes(m), 'ReadVariableNames', false);
-end
-
-for m = 1:size(probSets,1)
-    MainTable(m).ThermoProbSets     = readtable(probSets(m), 'ReadVariableNames', false);
+    MainTable(m).STSQuiz         = readtable(quizzes(m), 'ReadVariableNames', false);
 end
 
 for m = 1:size(exams,1)
-    MainTable(m).ThermoExams        = readtable(exams(m), 'ReadVariableNames', false);
+    MainTable(m).STSExams        = readtable(exams(m), 'ReadVariableNames', false);
 end
 
 % Import the Alphabetical List of Names
-NamesList   = readtable('NamesThermoAlphabetical.csv', 'ReadVariableNames', false);
+NamesList   = readtable(alphabeticalNames, 'ReadVariableNames', false);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PROCESS LOOP FOR ALL THE FILES
@@ -75,7 +72,7 @@ NamesList   = readtable('NamesThermoAlphabetical.csv', 'ReadVariableNames', fals
 for reqIndex = 1 : size(itemName,1)
     
     % Create a Struct File for storing exported table data
-    a0 = 'ExportedData';      b0 = zeros(1,size(ColIndex,1));
+    a0 = 'ExportedData';      b0 = zeros(1,size(ColIndex,2));
     
     ExportedTable = struct(a0, b0);
     
@@ -86,15 +83,11 @@ for reqIndex = 1 : size(itemName,1)
 
         % Process the files
         if reqIndex == 1
-            MainFile          = MainTable(N).ThermoQuiz;
-            MF_Cell           = table2cell(MainFile);
-            ColumnsOfInterest = MF_Cell(:,ColIndex);
-        elseif reqIndex == 2
-            MainFile          = MainTable(N).ThermoProbSets;
+            MainFile          = MainTable(N).STSQuiz;
             MF_Cell           = table2cell(MainFile);
             ColumnsOfInterest = MF_Cell(:,ColIndex);
         else
-            MainFile          = MainTable(N).ThermoExams;
+            MainFile          = MainTable(N).STSExams;
             MF_Cell           = table2cell(MainFile);
             ColumnsOfInterest = MF_Cell(:,ColIndex_exams);
         end  
@@ -113,7 +106,7 @@ for reqIndex = 1 : size(itemName,1)
         index               = sort(index);
         
         %pre-allocate withoutDuplicate array
-        withoutDuplicate    = cell(size(index,1), sizee(ColIndex);
+        withoutDuplicates   = cell(size(index,1), size(ColIndex,2));
         withoutDuplicates   = withDuplicates(index,1:3);
 
         % Remove the spaces and commas in the names
@@ -153,7 +146,8 @@ for reqIndex = 1 : size(itemName,1)
 
             a = cell2mat(NamesList_c(i,1));
             counter = 0;
-
+            
+            D = size(withoutDuplicates,1);
             for j = 1:D
 
                 b = cell2mat(withoutDuplicates(j,1));
@@ -188,13 +182,15 @@ for reqIndex = 1 : size(itemName,1)
                 %Compare the modified characters
                 truth_table(i,j) = strcmpi(a1, b1);
                 disp([a1 ,"  ", b1])
+                counter = counter + double(truth_table(i,j));
                 if truth_table(i,j)
                    matched_scores(i,:) = c;
                    names(i,:)          = convertCharsToStrings(a);
                    section_label(i,:)  = d;
-                   withoutDuplicate(j,:) = [];
+                   withoutDuplicates(j,:) = [];
+                   break;
                 end
-                counter = counter + double(truth_table(i,j));
+               
 
             end
             disp(counter);
@@ -209,7 +205,7 @@ for reqIndex = 1 : size(itemName,1)
         disp(truth_table);
     end
 
-    disp(["Done processing the Matching for " prefix(reqIndex)]);
+    disp(['Done processing the Matching for ' prefix(reqIndex)]);
     
     dataMatrix      = cell(size(NamesList, 1), size(itemName{reqIndex,1}, 1)+2);
     dataMatrix(:,1) = table2cell(NamesList(:,1));
