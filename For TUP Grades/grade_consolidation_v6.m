@@ -14,8 +14,8 @@ charPos         = 12;
 charAdj         = 2;
 
 % Item Details
-numberOfItems   = [7; 3; 1];
-prefix          = ["TQ"; "TPS"; "TE"];
+numberOfItems   = [12; 6; 2];
+prefix          = ["TDQ"; "TDPS"; "TDE"];
 
 % Raw Data Configuration
 ColIndex        = [8 6 11];
@@ -26,7 +26,7 @@ ColIndex_exams  = [9 6 12];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-addpath('D:\Research\TUP Important Files\2021-2022 First Sem\Quizzes\Quiz_PS_Exams_Repo')  
+addpath('D:\Research\TUP Important Files\2021-2022 First Sem\Quizzes\Quizzes_PS_Exams_Repo_v2')  
 
 itemName = cell(size(numberOfItems,1),1);
 

@@ -11,10 +11,10 @@ time1 = clock;
 
 % Parameters
 charPos         = 12;
-charAdj         = 2;
+charAdj         = 7;
 
 % Item Details
-numberOfItems   = [6; 4; 1];
+numberOfItems   = [8; 5; 2];
 prefix          = ["DRBQ"; "DRBPS"; "DRBE"];
 
 % Raw Data Configuration
@@ -25,12 +25,13 @@ ColIndex_probsets   = [9 6 12];
 % List of Alphabetical Names
 alphabeticalNames = 'NamesDRBAlphabetical.csv';
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % IMPORT ALL THE NECESSARY FILES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-addpath('D:\Research\TUP Important Files\2021-2022 First Sem\Quizzes\Quiz_PS_Exams_Repo')  
+addpath('D:\Research\TUP Important Files\2021-2022 First Sem\Quizzes\Quizzes_PS_Exams_Repo_v2')  
 
 itemName = cell(size(numberOfItems,1),1);
 
@@ -231,6 +232,9 @@ for reqIndex = 1 : size(itemName,1)
     formattedFileName = strcat('Scores_', prefix(reqIndex) ,'.csv');
     writecell(dataMatrix, formattedFileName);
 end
+
+
+
 
 % STOP TIMER
 time2 = clock;

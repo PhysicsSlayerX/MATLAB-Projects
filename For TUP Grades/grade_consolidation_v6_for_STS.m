@@ -14,22 +14,22 @@ charPos         = 12;
 charAdj         = 3;
 
 % Item Details
-numberOfItems   = [8; 1];
-prefix          = ["SQ"; "SE"];
+numberOfItems   = [10; 2];
+prefix          = ["STQ"; "STE"];
 
 % Raw Data Configuration
 ColIndex        = [8 6 11];
 ColIndex_exams  = [8 6 11];
 
 % List of Alphabetical Names
-alphabeticalNames = 'NamesThermoAlphabeticalSTS.csv';
+alphabeticalNames = 'NamesSTSAlphabetical.csv';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % IMPORT ALL THE NECESSARY FILES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
-addpath('D:\Research\TUP Important Files\2021-2022 First Sem\Quizzes\Quiz_PS_Exams_Repo')  
+addpath('D:\Research\TUP Important Files\2021-2022 First Sem\Quizzes\Quizzes_PS_Exams_Repo_v2')  
 
 itemName = cell(size(numberOfItems,1),1);
 
@@ -51,7 +51,7 @@ end
  
 % Create a Struct File for storing imported table data
 f0 = 'STSQuiz';      v0 = zeros(1,size(quizzes,1));
-f1 = 'STSProbSets';  v1 = zeros(1,size(exams,1));
+f1 = 'STSExams';  v1 = zeros(1,size(exams,1));
 MainTable = struct(f0,v0,f1,v1);
 
 for m = 1:size(quizzes,1)
